@@ -1,0 +1,761 @@
+---
+title: "Recruitment Report"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    logo: www/isaricwhite.png
+    css: www/styles.css
+---
+
+```{r render_setup, include = FALSE, echo = FALSE}
+library(rmarkdown)
+library(tidyverse)
+library(ggsci)
+library(finalfit)
+library(lubridate)
+library(flexdashboard)
+library(DT)
+
+#generate data
+source("07_source_data.R")
+
+topline = topline %>% 
+  distinct(subjid, .keep_all = T)
+
+topline = topline %>% 
+  mutate(tier_entered = ifelse(tiers_faorres___1 == 'Checked', 'Tier 0', NA),
+         tier_entered = ifelse(tiers_faorres___2 == 'Checked', 'Tier 1', tier_entered),
+         tier_entered = ifelse(tiers_faorres___3 == 'Checked', 'Tier 2', tier_entered),
+         tier_entered = ifelse(is.na(tier_entered), 'Missing', tier_entered) %>% factor() %>% 
+                                 fct_relevel('Tier 0', 'Tier 1', 'Tier 2', 'Missing')) %>% 
+  mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Chelsea and Westminster Hospital NHS, 369 Fulham Rd, London', 'Chelsea And Westminster Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Cheshire and Wirral Partnership NHSFT', 'Countess Of Chester Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Wirral University Teaching Hospital NHFT', 'Arrowe Park Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Royal United Hospitals Bath NHSFT', 'Royal United Hospitals', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Basildon and Thurrock University Hospitals NHS', 'Basildon University Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'The Queen Elizabeth Hospital Kings Lynn NHS Foundation Trust', 'The Queen Elizabeth Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Imperial College Healthcare NHS Trust', 'St Mary’s Hospital (Hq)', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'St Mary’s Hospital (Hq)', 'St Mary’s Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Pinderfields', 'Pinderfields Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Maidstone and Tunbridge Wells NHS Trust', 'Tunbridge Wells Hospital At Pembury', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Mid and South Essex University Hospitals Group', 'Southend Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'University Hospital Southampton NHS Foundation Trust', 'Southampton General Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'NUH Nottingham University Hosptial', 'Queen’s Medical Centre Campus', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Nottingham University Hospitals Nhs Trust - Queen’s Medical Centre Campus', 'Queen’s Medical Centre Campus', place_name)) %>%
+  mutate(place_name = ifelse(place_name == 'Nottingham University Hospitals Nhs Trust - City Campus', 'Nottingham City Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Diana', 'Diana, Princess of Wales Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'University College London Hospitals NHSFT', 'Royal Free Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'East Sussex Healthcare NHS Trust', 'Conquest Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Calderdale and Huddersfield NHS Trust', 'Huddersfield Royal Infirmary', place_name)) %>% 
+  mutate(city = ifelse(city == 'Bolsover', 'Chesterfield', city)) %>% 
+  mutate(place_name = ifelse(place_name == 'Queen Elizabeth University Hospital, Glasgow', 'Queen Elizabeth University Hospital', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'University Hospital Monklands Airdrie', 'University Hospital Monklands', place_name)) %>% 
+  mutate(place_name = gsub('Nhs', 'NHS', place_name)) %>% 
+  mutate(place_name = ifelse(place_name == 'Nottingham University Hospitals NHS Trust - Queen’s Medical Centre Campus', 'Queen’s Medical Centre Campus', place_name)) %>% 
+  mutate(place_name = factor(place_name),
+         city = factor(city))
+
+```
+
+UK
+=====================================
+    
+Row
+-------------------------------------
+    
+### Patients in CCP-UK (at time of last update)
+    
+```{r, fig.width = 8}
+topline %>% 
+  filter(!is.na(country)) %>% 
+  group_by(country) %>% 
+  summarise(count_recruited = n()) %>% 
+  ggplot(aes(x = country, y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = country), width = 0.5, stat = 'identity') + 
+  xlab('Country') + geom_label() + scale_fill_lancet(name = 'Nation') + theme_classic(14) + ylab('Number of Patients')
+
+```
+ 
+     
+### Recruitment rate by Country
+    
+```{r, fig.width = 8}
+topline_by_country = topline %>% 
+  filter(!is.na(country)) %>%
+  filter(dsstdat >= '2020-03-01' & dsstdat <= today() + 1) %>% 
+  group_by(dsstdat) %>% 
+  summarise(n = n()) %>% 
+  arrange(dsstdat) %>% 
+  mutate(cumulative_recruitment = cumsum(n),
+         country = 'UK')
+
+topline %>% 
+  filter(!is.na(country)) %>%
+  filter(dsstdat >= '2020-03-01' & dsstdat <= today() + 1) %>% 
+  group_by(country, dsstdat) %>% 
+  summarise(n = n()) %>% 
+  arrange(dsstdat) %>% 
+  mutate(cumulative_recruitment = cumsum(n)) %>% 
+  ggplot(aes(x = dsstdat, y = cumulative_recruitment)) + 
+  geom_line(data = topline_by_country, aes(x = dsstdat, y = cumulative_recruitment, color = country), linetype = 'dashed')  + 
+  geom_line(aes(colour = country)) + scale_color_lancet(name = 'Nation', breaks=c("UK","England", "Scotland","Wales")) + 
+  theme_classic(14) + ylab('Cumulative Recruitment') + xlab('Enrollment Date')
+
+```
+     
+Row
+-------------------------------------
+
+### Last updated
+
+```{r}
+valueBox(lastrun %>% format("%H:%M %d-%m-%Y"), icon = "fa-calendar", color = '#8f8f8f')
+```
+
+### Number of patients (all tiers)
+
+```{r}
+valueBox(formatC(count(topline)$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#772ac3')
+```
+
+### Number of patients (Tier 0)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(tiers_faorres___1 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+### Number of patients (Tier 1)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(tiers_faorres___2 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+### Number of patients (Tier 2)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(tiers_faorres___3 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+Row
+-------------------------------------
+
+### Demographics forms complete
+
+```{r}
+gauge(round(count(topline %>% filter(demographics_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+
+```
+
+### Onset / admission forms complete
+
+```{r}
+
+gauge(round(count(topline %>% filter(onset_and_admission_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Signs / symptoms forms complete
+
+```{r}
+gauge(round(count(topline %>% filter(admission_signs_and_symptoms_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Comorbidities forms complete
+
+```{r}
+gauge(round(count(topline %>% filter(comorbidities_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Complications complete (4 week lag)
+
+```{r}
+gauge(round(count(topline_outcomes_28 %>% filter(complications_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline_28 %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Outcomes forms complete (4 week lag)
+
+```{r}
+gauge(round(count(topline_outcomes_28 %>% filter(outcome_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline_28 %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+
+Scotland
+=====================================
+    
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Chart: Patients in CCP-UK (at time of last update)
+
+```{r, fig.width = 12}
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'Scotland') %>%
+  group_by(ccg_name) %>%
+  summarise(count_recruited = n()) %>%
+  ggplot(aes(x = reorder(ccg_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = ccg_name), width = 0.5, stat = 'identity') +
+  xlab('Health Board') + geom_label() + scale_fill_lancet(name = 'Health Board') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank())
+```
+
+### Chart: Recruitment rate by Health Board
+
+```{r, fig.width = 12}
+recruit_scotland = topline %>%
+  filter(country == 'Scotland') %>%
+  filter(!is.na(country)) %>%
+  filter(dsstdat >= '2020-01-30' & dsstdat <= today() + 1) %>%
+  group_by(dsstdat) %>%
+  summarise(n = n()) %>%
+  arrange(dsstdat) %>%
+  mutate(cumulative_recruitment = cumsum(n),
+         country = 'Scotland')
+
+topline %>%
+  filter(country == 'Scotland') %>%
+  distinct(ccg_name) -> names_hb
+
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'Scotland') %>%
+  filter(dsstdat >= '2020-01-30' & dsstdat <= today() + 1) %>%
+  group_by(ccg_name, dsstdat) %>%
+  summarise(n = n()) %>%
+  arrange(dsstdat) %>%
+  mutate(cumulative_recruitment = cumsum(n)) %>%
+  ggplot(aes(x = dsstdat, y = cumulative_recruitment)) +
+  geom_line(data = recruit_scotland, aes(x = dsstdat, y = cumulative_recruitment, color = country), linetype = 'dashed')  +
+  geom_line(aes(colour = ccg_name)) + scale_color_lancet(name = 'Health Board', breaks=c("Scotland", names_hb$ccg_name)) +
+  theme_classic(14) + ylab('Cumulative Recruitment') + xlab('Enrollment Date')
+
+```
+
+### Chart: Patients in CCP-UK by Tier (at time of last update)
+
+```{r, fig.width = 12, fig.height= 6}
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'Scotland') %>%
+  group_by(ccg_name, tier_entered) %>%
+  summarise(count_recruited = n()) %>%
+  ggplot(aes(x = reorder(ccg_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = ccg_name), width = 0.5, stat = 'identity') +
+  xlab('Health Board') + geom_label() + scale_fill_lancet(name = 'Health Board') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank()) + facet_wrap(~tier_entered)
+```   
+   
+### Table: Recruitment by Health Board
+```{r}
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'Scotland') %>%
+  group_by(ccg_name, place_name, tier_entered, .drop = FALSE) %>% 
+  summarise(number_recruited = n()) %>% 
+  group_by(ccg_name) %>% 
+  mutate(percentage_of_hb = paste0(sprintf("%.1f", round(number_recruited/sum(number_recruited) * 100, digits = 1)), '%')) %>% 
+  rename('Health Board' = ccg_name,
+         'Hospital' = place_name,
+         'Tier' = tier_entered,
+         'Number recruited' = number_recruited,
+         'Percentage within Health Board' = percentage_of_hb) %>% 
+   DT::datatable(options = list(bPaginate = FALSE ),
+    rownames= FALSE)
+```
+     
+Row
+-------------------------------------
+
+### Last updated
+
+```{r}
+valueBox(lastrun %>% format("%H:%M %d-%m-%Y"), icon = "fa-calendar", color = '#8f8f8f')
+```
+
+### Number of patients (all tiers)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(country == 'Scotland'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#772ac3')
+```
+
+### Number of patients (Tier 0)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(country == 'Scotland') %>% filter(tiers_faorres___1 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+### Number of patients (Tier 1)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(country == 'Scotland') %>% filter(tiers_faorres___2 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+### Number of patients (Tier 2)
+
+```{r}
+valueBox(formatC(count(topline%>% filter(country == 'Scotland') %>% filter(tiers_faorres___3 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+Row
+-------------------------------------
+
+### Demographics forms complete
+
+```{r}
+gauge(round(count(topline%>% filter(country == 'Scotland') %>% filter(demographics_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Scotland') %>%   
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+
+```
+
+### Onset / admission forms complete
+
+```{r}
+
+gauge(round(count(topline %>% filter(country == 'Scotland') %>% filter(onset_and_admission_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Scotland') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Signs / symptoms forms complete
+
+```{r}
+gauge(round(count(topline %>% filter(country == 'Scotland') %>% filter(admission_signs_and_symptoms_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Scotland') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Comorbidities forms complete
+
+```{r}
+gauge(round(count(topline %>% filter(country == 'Scotland') %>% filter(comorbidities_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Scotland') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Complications complete (4 week lag)
+
+```{r}
+gauge(round(count(topline_outcomes_28 %>% filter(country == 'Scotland') %>% filter(complications_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'Scotland') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Outcomes forms complete (4 week lag)
+
+```{r}
+gauge(round(count(topline_outcomes_28 %>% filter(country == 'Scotland') %>% filter(outcome_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'Scotland') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+
+England
+=====================================
+    
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Chart: Patients in CCP-UK by Tier (at time of last update)
+```{r, fig.width = 12}
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'England') %>%
+  group_by(tier_entered) %>%
+  summarise(count_recruited = n()) %>% 
+  arrange(desc(count_recruited)) %>% 
+  slice(1:20) %>% 
+  ggplot(aes(x = reorder(tier_entered, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = tier_entered), width = 0.5, stat = 'identity') +
+  xlab('Tier') + geom_label() + scale_fill_lancet(name = 'Tier') + theme_classic(14) + ylab('Number of Patients')
+```
+
+### Chart: Top recruiting centres in England
+
+```{r, fig.width = 12}
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'England') %>%
+  group_by(place_name) %>%
+  summarise(count_recruited = n()) %>% 
+  arrange(desc(count_recruited)) %>% 
+  slice(1:20) %>% 
+  ggplot(aes(x = reorder(place_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = place_name), width = 0.5, stat = 'identity') +
+  xlab('Hospital') + geom_label() + scale_fill_discrete(name = 'Hospital') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank())
+```
+
+### Chart: Recruitment rate by Tier
+
+```{r, fig.width = 12}
+
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'England') %>%
+  filter(tier_entered != 'Missing') %>%
+  filter(dsstdat >= '2020-01-30' & dsstdat <= today() + 1) %>%
+  group_by(tier_entered, dsstdat) %>%
+  summarise(n = n()) %>%
+  arrange(dsstdat) %>%
+  mutate(cumulative_recruitment = cumsum(n)) %>%
+  ggplot(aes(x = dsstdat, y = cumulative_recruitment)) +
+  geom_line(aes(colour = tier_entered)) + scale_color_lancet(name = 'Tier') +
+  theme_classic(14) + ylab('Cumulative Recruitment') + xlab('Enrollment Date')
+
+```
+
+### Table: Recruitment by Hospital
+
+```{r}
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'England') %>%
+  group_by(city, place_name, tier_entered, .drop = FALSE) %>% 
+  summarise(number_recruited = n()) %>% 
+  group_by(place_name) %>% 
+  mutate(percentage_of_hb = paste0(sprintf("%.1f", round(number_recruited/sum(number_recruited) * 100, digits = 1)), '%')) %>% 
+  rename('City Region' = city,
+         'Hospital' = place_name,
+         'Tier' = tier_entered,
+         'Number recruited' = number_recruited,
+         'Percentage within Hospital' = percentage_of_hb) %>% 
+  DT::datatable(options = list(bPaginate = FALSE ),
+    rownames= FALSE)
+
+```
+     
+Row
+-------------------------------------
+
+### Last updated
+
+```{r}
+valueBox(lastrun %>% format("%H:%M %d-%m-%Y"), icon = "fa-calendar", color = '#8f8f8f')
+```
+
+### Number of patients (all tiers)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(country == 'England'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#772ac3')
+```
+
+### Number of patients (Tier 0)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(country == 'England') %>% filter(tiers_faorres___1 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+### Number of patients (Tier 1)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(country == 'England') %>% filter(tiers_faorres___2 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+### Number of patients (Tier 2)
+
+```{r}
+valueBox(formatC(count(topline%>% filter(country == 'England') %>% filter(tiers_faorres___3 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+Row
+-------------------------------------
+
+### Demographics forms complete
+
+```{r}
+gauge(round(count(topline%>% filter(country == 'England') %>% filter(demographics_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'England') %>%   
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+
+```
+
+### Onset / admission forms complete
+
+```{r}
+
+gauge(round(count(topline %>% filter(country == 'England') %>% filter(onset_and_admission_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'England') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Signs / symptoms forms complete
+
+```{r}
+gauge(round(count(topline %>% filter(country == 'England') %>% filter(admission_signs_and_symptoms_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'England') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Comorbidities forms complete
+
+```{r}
+gauge(round(count(topline %>% filter(country == 'England') %>% filter(comorbidities_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'England') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Complications complete (4 week lag)
+
+```{r}
+gauge(round(count(topline_outcomes_28 %>% filter(country == 'England') %>% filter(complications_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'England') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Outcomes forms complete (4 week lag)
+
+```{r}
+gauge(round(count(topline_outcomes_28 %>% filter(country == 'England') %>% filter(outcome_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'England') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+
+Wales
+=====================================
+    
+Row {.tabset .tabset-fade}
+-------------------------------------
+
+### Chart: Patients in CCP-UK (at time of last update)
+
+```{r, fig.width = 12}
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'Wales') %>%
+  mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
+  group_by(place_name) %>%
+  summarise(count_recruited = n()) %>%
+  ggplot(aes(x = reorder(place_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = place_name), width = 0.5, stat = 'identity') +
+  xlab('Health Board') + geom_label() + scale_fill_discrete(name = 'Hospital') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank())
+```
+
+### Chart: Recruitment rate by Health Board
+
+```{r, fig.width = 12}
+recruit_Wales = topline %>%
+  filter(country == 'Wales') %>%
+  filter(!is.na(country)) %>%
+  filter(dsstdat >= '2020-01-30' & dsstdat <= today() + 1) %>%
+  group_by(dsstdat) %>%
+  summarise(n = n()) %>%
+  arrange(dsstdat) %>%
+  mutate(cumulative_recruitment = cumsum(n),
+         country = 'Wales')
+
+topline %>%
+  filter(country == 'Wales') %>%
+  mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
+  distinct(place_name) -> names_hb
+
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'Wales') %>%
+  filter(dsstdat >= '2020-01-30' & dsstdat <= today() + 1) %>%
+  mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
+  group_by(place_name, dsstdat) %>%
+  summarise(n = n()) %>%
+  arrange(dsstdat) %>%
+  mutate(cumulative_recruitment = cumsum(n)) %>%
+  ggplot(aes(x = dsstdat, y = cumulative_recruitment)) +
+  geom_line(data = recruit_Wales, aes(x = dsstdat, y = cumulative_recruitment, color = country), linetype = 'dashed')  +
+  geom_line(aes(colour = place_name)) + scale_color_discrete(name = 'Hospital', breaks=c("Wales", names_hb$place_name)) +
+  theme_classic(14) + ylab('Cumulative Recruitment') + xlab('Enrollment Date')
+
+```
+
+### Chart: Patients in CCP-UK by Tier (at time of last update)
+
+```{r, fig.width = 13, fig.height= 6}
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'Wales') %>%
+  mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
+  group_by(place_name, tier_entered) %>%
+  summarise(count_recruited = n()) %>%
+  ggplot(aes(x = reorder(place_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = place_name), width = 0.5, stat = 'identity') +
+  xlab('Health Board') + geom_label(nudge_x = 0.5) + scale_fill_discrete(name = 'Hospital') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank()) + facet_wrap(~tier_entered)
+```   
+   
+### Table: Recruitment by Health Board
+```{r}
+topline %>%
+  filter(!is.na(country)) %>%
+  filter(country == 'Wales') %>%
+  group_by(ccg_name, place_name, tier_entered, .drop = FALSE) %>% 
+  summarise(number_recruited = n()) %>% 
+  group_by(ccg_name) %>% 
+  mutate(percentage_of_hb = paste0(sprintf("%.1f", round(number_recruited/sum(number_recruited) * 100, digits = 1)), '%')) %>% 
+  rename('Health Board' = ccg_name,
+         'Hospital' = place_name,
+         'Tier' = tier_entered,
+         'Number recruited' = number_recruited,
+         'Percentage within Health Board' = percentage_of_hb) %>% 
+   DT::datatable(options = list(bPaginate = FALSE ),
+    rownames= FALSE)
+```
+     
+Row
+-------------------------------------
+
+### Last updated
+
+```{r}
+valueBox(lastrun %>% format("%H:%M %d-%m-%Y"), icon = "fa-calendar", color = '#8f8f8f')
+```
+
+### Number of patients (all tiers)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(country == 'Wales'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#772ac3')
+```
+
+### Number of patients (Tier 0)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(country == 'Wales') %>% filter(tiers_faorres___1 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+### Number of patients (Tier 1)
+
+```{r}
+valueBox(formatC(count(topline %>% filter(country == 'Wales') %>% filter(tiers_faorres___2 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+### Number of patients (Tier 2)
+
+```{r}
+valueBox(formatC(count(topline%>% filter(country == 'Wales') %>% filter(tiers_faorres___3 == 'Checked'))$n, format="f", big.mark=" ", digits=0), icon = "fa-users", color = '#06bd6c')
+```
+
+Row
+-------------------------------------
+
+### Demographics forms complete
+
+```{r}
+gauge(round(count(topline%>% filter(country == 'Wales') %>% filter(demographics_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Wales') %>%   
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+
+```
+
+### Onset / admission forms complete
+
+```{r}
+
+gauge(round(count(topline %>% filter(country == 'Wales') %>% filter(onset_and_admission_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Wales') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Signs / symptoms forms complete
+
+```{r}
+gauge(round(count(topline %>% filter(country == 'Wales') %>% filter(admission_signs_and_symptoms_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Wales') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Comorbidities forms complete
+
+```{r}
+gauge(round(count(topline %>% filter(country == 'Wales') %>% filter(comorbidities_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Wales') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Complications complete (4 week lag)
+
+```{r}
+gauge(round(count(topline_outcomes_28 %>% filter(country == 'Wales') %>% filter(complications_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'Wales') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+### Outcomes forms complete (4 week lag)
+
+```{r}
+gauge(round(count(topline_outcomes_28 %>% filter(country == 'Wales') %>% filter(outcome_complete == 'Complete') %>% 
+              distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'Wales') %>%  
+                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
+      min = 0, max = 100, symbol = '%', gaugeSectors(
+  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+))
+```
+
+
