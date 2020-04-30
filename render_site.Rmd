@@ -28,6 +28,8 @@ topline = topline %>%
          tier_entered = ifelse(tiers_faorres___3 == 'Checked', 'Tier 2', tier_entered),
          tier_entered = ifelse(is.na(tier_entered), 'Missing', tier_entered) %>% factor() %>% 
                                  fct_relevel('Tier 0', 'Tier 1', 'Tier 2', 'Missing')) %>% 
+  mutate(place_name = as.character(place_name)) %>% 
+  mutate(city = as.character(city)) %>%
   mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'Chelsea and Westminster Hospital NHS, 369 Fulham Rd, London', 'Chelsea And Westminster Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'Cheshire and Wirral Partnership NHSFT', 'Countess Of Chester Hospital', place_name)) %>% 
@@ -42,7 +44,7 @@ topline = topline %>%
   mutate(place_name = ifelse(place_name == 'Mid and South Essex University Hospitals Group', 'Southend Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'University Hospital Southampton NHS Foundation Trust', 'Southampton General Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'NUH Nottingham University Hosptial', 'Queen’s Medical Centre Campus', place_name)) %>% 
-  mutate(place_name = ifelse(place_name == 'Nottingham University Hospitals Nhs Trust - Queen’s Medical Centre Campus', 'Queen’s Medical Centre Campus', place_name)) %>%
+  mutate(place_name = ifelse(place_name == 'Nottingham University Hospitals Nhs Trust - Queen’s Medical Centre Campus', 'Queen’s Medical Centre Campus', place_name))%>%
   mutate(place_name = ifelse(place_name == 'Nottingham University Hospitals Nhs Trust - City Campus', 'Nottingham City Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'Diana', 'Diana, Princess of Wales Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'University College London Hospitals NHSFT', 'Royal Free Hospital', place_name)) %>% 
@@ -52,10 +54,7 @@ topline = topline %>%
   mutate(place_name = ifelse(place_name == 'Queen Elizabeth University Hospital, Glasgow', 'Queen Elizabeth University Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'University Hospital Monklands Airdrie', 'University Hospital Monklands', place_name)) %>% 
   mutate(place_name = gsub('Nhs', 'NHS', place_name)) %>% 
-  mutate(place_name = ifelse(place_name == 'Nottingham University Hospitals NHS Trust - Queen’s Medical Centre Campus', 'Queen’s Medical Centre Campus', place_name)) %>% 
-  mutate(place_name = factor(place_name),
-         city = factor(city))
-
+  mutate(place_name = ifelse(grepl('Nottingham University Hospitals NHS Trust', place_name) & grepl('Medical Centre Campus', place_name), 'Queen’s Medical Centre Campus', place_name))
 ```
 
 UK
@@ -185,10 +184,10 @@ gauge(round(count(topline %>% filter(comorbidities_complete == 'Complete') %>%
 ))
 ```
 
-### Complications complete (4 week lag)
+### Outcomes / Complications complete (4 week lag)
 
 ```{r}
-gauge(round(count(topline_outcomes_28 %>% filter(complications_complete == 'Complete') %>% 
+gauge(round(count(topline_outcomes_28 %>% filter(complications_complete == 'Complete' & outcome_complete == 'Complete') %>% 
               distinct(subjid, .keep_all = T))$n / count(topline_28 %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
@@ -196,16 +195,10 @@ gauge(round(count(topline_outcomes_28 %>% filter(complications_complete == 'Comp
 ))
 ```
 
-### Outcomes forms complete (4 week lag)
+### About Us
 
-```{r}
-gauge(round(count(topline_outcomes_28 %>% filter(outcome_complete == 'Complete') %>% 
-              distinct(subjid, .keep_all = T))$n / count(topline_28 %>%  
-                                                           distinct(subjid, .keep_all = T))$n*100, digits = 1), 
-      min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
-))
-```
+This dashboard was created by the [SurgicalInformatics Group](https://surgicalinformatics.org/) at the [University of Edinburgh](https://ed.ac.uk/) as part of the ISARIC-4C initiative. Please report any bugs or suggestions for improvement to us!
+
 
 
 Scotland
@@ -274,7 +267,10 @@ topline %>%
 ```{r}
 topline %>%
   filter(!is.na(country)) %>%
-  filter(country == 'Scotland') %>%
+  filter(country == 'Scotland')%>% 
+  mutate(place_name = as.character(place_name),
+         city = as.character(city),
+         ccg_name = as.character(ccg_name)) %>% 
   group_by(ccg_name, place_name, tier_entered, .drop = FALSE) %>% 
   summarise(number_recruited = n()) %>% 
   group_by(ccg_name) %>% 
@@ -451,6 +447,9 @@ topline %>%
 topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'England') %>%
+  mutate(place_name = as.character(place_name),
+         city = as.character(city),
+         ccg_name = as.character(ccg_name)) %>%
   group_by(city, place_name, tier_entered, .drop = FALSE) %>% 
   summarise(number_recruited = n()) %>% 
   group_by(place_name) %>% 
@@ -460,9 +459,8 @@ topline %>%
          'Tier' = tier_entered,
          'Number recruited' = number_recruited,
          'Percentage within Hospital' = percentage_of_hb) %>% 
-  DT::datatable(options = list(bPaginate = FALSE ),
-    rownames= FALSE)
-
+      DT::datatable(options = list(bPaginate = FALSE ),
+          rownames= FALSE)
 ```
      
 Row
@@ -582,7 +580,6 @@ Row {.tabset .tabset-fade}
 topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Wales') %>%
-  mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
   group_by(place_name) %>%
   summarise(count_recruited = n()) %>%
   ggplot(aes(x = reorder(place_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = place_name), width = 0.5, stat = 'identity') +
@@ -604,14 +601,12 @@ recruit_Wales = topline %>%
 
 topline %>%
   filter(country == 'Wales') %>%
-  mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
   distinct(place_name) -> names_hb
 
 topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Wales') %>%
   filter(dsstdat >= '2020-01-30' & dsstdat <= today() + 1) %>%
-  mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
   group_by(place_name, dsstdat) %>%
   summarise(n = n()) %>%
   arrange(dsstdat) %>%
@@ -629,7 +624,6 @@ topline %>%
 topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Wales') %>%
-  mutate(place_name = ifelse(place_name == 'Cardiff and Vale University Health Board', 'University Hospital Of Wales', place_name)) %>% 
   group_by(place_name, tier_entered) %>%
   summarise(count_recruited = n()) %>%
   ggplot(aes(x = reorder(place_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = place_name), width = 0.5, stat = 'identity') +
@@ -641,6 +635,9 @@ topline %>%
 topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Wales') %>%
+  mutate(place_name = as.character(place_name),
+         city = as.character(city),
+         ccg_name = as.character(ccg_name)) %>%
   group_by(ccg_name, place_name, tier_entered, .drop = FALSE) %>% 
   summarise(number_recruited = n()) %>% 
   group_by(ccg_name) %>% 
