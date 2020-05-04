@@ -15,9 +15,13 @@ library(finalfit)
 library(lubridate)
 library(flexdashboard)
 library(DT)
+gc()#try preserve memory
+
+today_date = lubridate::today()
 
 #generate data
 source("07_source_data.R")
+gc()#try preserve memory
 
 topline = topline %>% 
   distinct(subjid, .keep_all = T)
@@ -44,7 +48,7 @@ topline = topline %>%
   mutate(place_name = ifelse(place_name == 'Mid and South Essex University Hospitals Group', 'Southend Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'University Hospital Southampton NHS Foundation Trust', 'Southampton General Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'NUH Nottingham University Hosptial', 'Queen’s Medical Centre Campus', place_name)) %>% 
-  mutate(place_name = ifelse(place_name == 'Nottingham University Hospitals Nhs Trust - Queen’s Medical Centre Campus', 'Queen’s Medical Centre Campus', place_name))%>%
+  mutate(place_name = ifelse(place_name == "Nottingham University Hospitals NHS Trust - Queen's Medical Centre Campus", 'Queen’s Medical Centre Campus', place_name))%>%
   mutate(place_name = ifelse(place_name == 'Nottingham University Hospitals Nhs Trust - City Campus', 'Nottingham City Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'Diana', 'Diana, Princess of Wales Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'University College London Hospitals NHSFT', 'Royal Free Hospital', place_name)) %>% 
@@ -53,8 +57,8 @@ topline = topline %>%
   mutate(city = ifelse(city == 'Bolsover', 'Chesterfield', city)) %>% 
   mutate(place_name = ifelse(place_name == 'Queen Elizabeth University Hospital, Glasgow', 'Queen Elizabeth University Hospital', place_name)) %>% 
   mutate(place_name = ifelse(place_name == 'University Hospital Monklands Airdrie', 'University Hospital Monklands', place_name)) %>% 
-  mutate(place_name = gsub('Nhs', 'NHS', place_name)) %>% 
-  mutate(place_name = ifelse(grepl('Nottingham University Hospitals NHS Trust', place_name) & grepl('Medical Centre Campus', place_name), 'Queen’s Medical Centre Campus', place_name))
+  mutate(place_name = ifelse(place_name == 'North West Boroughs Healthcare NHSFT', 'Warrington Hospital', place_name)) %>% 
+  mutate(place_name = gsub('Nhs', 'NHS', place_name))
 ```
 
 UK
@@ -63,16 +67,19 @@ UK
 Row
 -------------------------------------
     
-### Patients in CCP-UK (at time of last update)
+### Patients in ISARIC 4C-UK (at time of last update)
     
 ```{r, fig.width = 8}
-topline %>% 
+pts_in_uk = topline %>% 
   filter(!is.na(country)) %>% 
   group_by(country) %>% 
   summarise(count_recruited = n()) %>% 
   ggplot(aes(x = country, y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = country), width = 0.5, stat = 'identity') + 
   xlab('Country') + geom_label() + scale_fill_lancet(name = 'Nation') + theme_classic(14) + ylab('Number of Patients')
 
+pts_in_uk 
+
+rm(pts_in_uk)
 ```
  
      
@@ -81,16 +88,16 @@ topline %>%
 ```{r, fig.width = 8}
 topline_by_country = topline %>% 
   filter(!is.na(country)) %>%
-  filter(dsstdat >= '2020-03-01' & dsstdat <= today() + 1) %>% 
+  filter(dsstdat >= '2020-03-01' & dsstdat <= today_date + 1) %>% 
   group_by(dsstdat) %>% 
   summarise(n = n()) %>% 
   arrange(dsstdat) %>% 
   mutate(cumulative_recruitment = cumsum(n),
          country = 'UK')
 
-topline %>% 
+rr_by_country = topline %>% 
   filter(!is.na(country)) %>%
-  filter(dsstdat >= '2020-03-01' & dsstdat <= today() + 1) %>% 
+  filter(dsstdat >= '2020-03-01' & dsstdat <= today_date + 1) %>% 
   group_by(country, dsstdat) %>% 
   summarise(n = n()) %>% 
   arrange(dsstdat) %>% 
@@ -99,7 +106,8 @@ topline %>%
   geom_line(data = topline_by_country, aes(x = dsstdat, y = cumulative_recruitment, color = country), linetype = 'dashed')  + 
   geom_line(aes(colour = country)) + scale_color_lancet(name = 'Nation', breaks=c("UK","England", "Scotland","Wales")) + 
   theme_classic(14) + ylab('Cumulative Recruitment') + xlab('Enrollment Date')
-
+rr_by_country
+rm(topline_by_country,rr_by_country)
 ```
      
 Row
@@ -153,7 +161,6 @@ gauge(round(count(topline %>% filter(demographics_complete == 'Complete') %>%
 ### Onset / admission forms complete
 
 ```{r}
-
 gauge(round(count(topline %>% filter(onset_and_admission_complete == 'Complete') %>% 
               distinct(subjid, .keep_all = T))$n / count(topline %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
@@ -184,7 +191,7 @@ gauge(round(count(topline %>% filter(comorbidities_complete == 'Complete') %>%
 ))
 ```
 
-### Outcomes / Complications complete (4 week lag)
+### Outcomes / Complications (4 week lag)
 
 ```{r}
 gauge(round(count(topline_outcomes_28 %>% filter(complications_complete == 'Complete' & outcome_complete == 'Complete') %>% 
@@ -197,8 +204,7 @@ gauge(round(count(topline_outcomes_28 %>% filter(complications_complete == 'Comp
 
 ### About Us
 
-This dashboard was created by the [SurgicalInformatics Group](https://surgicalinformatics.org/) at the [University of Edinburgh](https://ed.ac.uk/) as part of the ISARIC-4C initiative. Please report any bugs or suggestions for improvement to us!
-
+Created by [Tom Drake](mailto:t.drake@ed.ac.uk), [SurgicalInformatics Group](https://surgicalinformatics.org/) at the [University of Edinburgh](https://ed.ac.uk/) as part of ISARIC-4C.
 
 
 Scotland
@@ -207,16 +213,20 @@ Scotland
 Row {.tabset .tabset-fade}
 -------------------------------------
 
-### Chart: Patients in CCP-UK (at time of last update)
+### Chart: Patients in ISARIC 4C-UK (at time of last update)
 
 ```{r, fig.width = 12}
-topline %>%
+scot_pts_by_hb = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Scotland') %>%
   group_by(ccg_name) %>%
   summarise(count_recruited = n()) %>%
   ggplot(aes(x = reorder(ccg_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = ccg_name), width = 0.5, stat = 'identity') +
   xlab('Health Board') + geom_label() + scale_fill_lancet(name = 'Health Board') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank())
+
+scot_pts_by_hb
+
+rm(scot_pts_by_hb)
 ```
 
 ### Chart: Recruitment rate by Health Board
@@ -236,7 +246,7 @@ topline %>%
   filter(country == 'Scotland') %>%
   distinct(ccg_name) -> names_hb
 
-topline %>%
+rr_by_hb_scot = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Scotland') %>%
   filter(dsstdat >= '2020-01-30' & dsstdat <= today() + 1) %>%
@@ -249,23 +259,30 @@ topline %>%
   geom_line(aes(colour = ccg_name)) + scale_color_lancet(name = 'Health Board', breaks=c("Scotland", names_hb$ccg_name)) +
   theme_classic(14) + ylab('Cumulative Recruitment') + xlab('Enrollment Date')
 
+rr_by_hb_scot
+
+rm(recruit_scotland, rr_by_hb_scot, names_hb)
 ```
 
-### Chart: Patients in CCP-UK by Tier (at time of last update)
+### Chart: Patients in ISARIC 4C-UK by Tier (at time of last update)
 
 ```{r, fig.width = 12, fig.height= 6}
-topline %>%
+tier_scotland_plot = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Scotland') %>%
   group_by(ccg_name, tier_entered) %>%
   summarise(count_recruited = n()) %>%
   ggplot(aes(x = reorder(ccg_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = ccg_name), width = 0.5, stat = 'identity') +
   xlab('Health Board') + geom_label() + scale_fill_lancet(name = 'Health Board') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank()) + facet_wrap(~tier_entered)
+
+tier_scotland_plot
+
+rm(tier_scotland_plot)
 ```   
    
 ### Table: Recruitment by Health Board
 ```{r}
-topline %>%
+tab_scot_hb = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Scotland')%>% 
   mutate(place_name = as.character(place_name),
@@ -282,6 +299,10 @@ topline %>%
          'Percentage within Health Board' = percentage_of_hb) %>% 
    DT::datatable(options = list(bPaginate = FALSE ),
     rownames= FALSE)
+
+tab_scot_hb
+
+rm(tab_scot_hb)
 ```
      
 Row
@@ -329,7 +350,6 @@ gauge(round(count(topline%>% filter(country == 'Scotland') %>% filter(demographi
       min = 0, max = 100, symbol = '%', gaugeSectors(
   success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
 ))
-
 ```
 
 ### Onset / admission forms complete
@@ -395,9 +415,9 @@ England
 Row {.tabset .tabset-fade}
 -------------------------------------
 
-### Chart: Patients in CCP-UK by Tier (at time of last update)
+### Chart: Patients in ISARIC 4C-UK by Tier (at time of last update)
 ```{r, fig.width = 12}
-topline %>%
+eng_pts_by_tier = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'England') %>%
   group_by(tier_entered) %>%
@@ -406,12 +426,16 @@ topline %>%
   slice(1:20) %>% 
   ggplot(aes(x = reorder(tier_entered, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = tier_entered), width = 0.5, stat = 'identity') +
   xlab('Tier') + geom_label() + scale_fill_lancet(name = 'Tier') + theme_classic(14) + ylab('Number of Patients')
+
+eng_pts_by_tier
+
+rm(eng_pts_by_tier)
 ```
 
 ### Chart: Top recruiting centres in England
 
 ```{r, fig.width = 12}
-topline %>%
+top_recruiting_eng = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'England') %>%
   group_by(place_name) %>%
@@ -420,13 +444,17 @@ topline %>%
   slice(1:20) %>% 
   ggplot(aes(x = reorder(place_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = place_name), width = 0.5, stat = 'identity') +
   xlab('Hospital') + geom_label() + scale_fill_discrete(name = 'Hospital') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank())
+
+top_recruiting_eng
+
+rm(top_recruiting_eng)
 ```
 
 ### Chart: Recruitment rate by Tier
 
 ```{r, fig.width = 12}
 
-topline %>%
+rr_eng_by_tier = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'England') %>%
   filter(tier_entered != 'Missing') %>%
@@ -439,12 +467,15 @@ topline %>%
   geom_line(aes(colour = tier_entered)) + scale_color_lancet(name = 'Tier') +
   theme_classic(14) + ylab('Cumulative Recruitment') + xlab('Enrollment Date')
 
+rr_eng_by_tier
+
+rm(rr_eng_by_tier)
 ```
 
 ### Table: Recruitment by Hospital
 
 ```{r}
-topline %>%
+tab_england = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'England') %>%
   mutate(place_name = as.character(place_name),
@@ -461,6 +492,10 @@ topline %>%
          'Percentage within Hospital' = percentage_of_hb) %>% 
       DT::datatable(options = list(bPaginate = FALSE ),
           rownames= FALSE)
+
+tab_england
+
+rm(tab_england)
 ```
      
 Row
@@ -574,16 +609,20 @@ Wales
 Row {.tabset .tabset-fade}
 -------------------------------------
 
-### Chart: Patients in CCP-UK (at time of last update)
+### Chart: Patients in ISARIC 4C-UK (at time of last update)
 
 ```{r, fig.width = 12}
-topline %>%
+pts_in_wales = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Wales') %>%
   group_by(place_name) %>%
   summarise(count_recruited = n()) %>%
   ggplot(aes(x = reorder(place_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = place_name), width = 0.5, stat = 'identity') +
   xlab('Health Board') + geom_label() + scale_fill_discrete(name = 'Hospital') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank())
+
+pts_in_wales
+
+rm(pts_in_wales)
 ```
 
 ### Chart: Recruitment rate by Health Board
@@ -603,7 +642,7 @@ topline %>%
   filter(country == 'Wales') %>%
   distinct(place_name) -> names_hb
 
-topline %>%
+wales_rr_plot = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Wales') %>%
   filter(dsstdat >= '2020-01-30' & dsstdat <= today() + 1) %>%
@@ -616,23 +655,30 @@ topline %>%
   geom_line(aes(colour = place_name)) + scale_color_discrete(name = 'Hospital', breaks=c("Wales", names_hb$place_name)) +
   theme_classic(14) + ylab('Cumulative Recruitment') + xlab('Enrollment Date')
 
+wales_rr_plot
+
+rm(recruit_Wales, names_hb, wales_rr_plot)
 ```
 
-### Chart: Patients in CCP-UK by Tier (at time of last update)
+### Chart: Patients in ISARIC 4C-UK by Tier (at time of last update)
 
 ```{r, fig.width = 13, fig.height= 6}
-topline %>%
+tier_pts_wales = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Wales') %>%
   group_by(place_name, tier_entered) %>%
   summarise(count_recruited = n()) %>%
   ggplot(aes(x = reorder(place_name, -count_recruited), y = count_recruited, label = count_recruited)) + geom_bar(aes(fill = place_name), width = 0.5, stat = 'identity') +
   xlab('Health Board') + geom_label(nudge_x = 0.5) + scale_fill_discrete(name = 'Hospital') + theme_classic(14) + ylab('Number of Patients') + theme(axis.text.x = element_blank()) + facet_wrap(~tier_entered)
+
+tier_pts_wales
+
+rm(tier_pts_wales)
 ```   
    
 ### Table: Recruitment by Health Board
 ```{r}
-topline %>%
+tab_wales = topline %>%
   filter(!is.na(country)) %>%
   filter(country == 'Wales') %>%
   mutate(place_name = as.character(place_name),
@@ -649,6 +695,10 @@ topline %>%
          'Percentage within Health Board' = percentage_of_hb) %>% 
    DT::datatable(options = list(bPaginate = FALSE ),
     rownames= FALSE)
+
+tab_wales
+
+rm(tab_wales)
 ```
      
 Row

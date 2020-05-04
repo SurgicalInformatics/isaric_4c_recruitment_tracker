@@ -3,9 +3,9 @@
 library(RCurl)
 library(tidyverse)
 library(ggmap)
-library(sf)
-library(sp)
-library(geogrid)
+# library(sf)
+# library(sp)
+# library(geogrid)
 library(stringr)
 
 #make dag_id
@@ -35,6 +35,9 @@ while (tries == 0 | (tries < 5 & inherits(data, "try-error"))){
     format='csv',
     type='flat',
     'fields[0]'='subjid',
+    'events[0]'='day_1_hospital_adm_arm_1',
+    'events[2]'='day_1_hospitalicu_arm_2',
+    'events[4]'='day_1_arm_3',
     rawOrLabel='label',
     rawOrLabelHeaders='raw',
     exportCheckboxLabel='false',
@@ -60,7 +63,7 @@ dag_labels = data_labels %>%
 ccp_data = ccp_data %>% 
   left_join(dag_labels, by = 'dag_id')
 
-master = readRDS('geoJSONs/master.rds')
+#master = readRDS('geoJSONs/master.rds')
 
 # #sort lanarkshire
 # dag_lookup = dag_lookup %>% #sensitivity maximising search

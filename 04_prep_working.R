@@ -85,25 +85,25 @@ treatment = ccp_data %>%
 
 # Outcomes tibble --------------------------------------------------------------------------------------------
 ## Plan to replace this. 
-outcome = ccp_data %>% 
+outcome = ccp_data %>%
   filter(redcap_event_name == "Discharge/Death (Arm 1: TIER 0)" |
            redcap_event_name == "Discharge/Death (Arm 2: TIER 1)" |
-           redcap_event_name == "Discharge/Death (Arm 3: TIER 2)") %>% 
-  filter(is.na(redcap_repeat_instrument)) %>% 
+           redcap_event_name == "Discharge/Death (Arm 3: TIER 2)") %>%
+  filter(is.na(redcap_repeat_instrument)) %>%
   mutate(
     status = case_when(
       dsterm == "Discharged alive" ~ "Discharged alive",
       dsterm == "Hospitalization" ~ "On-going care",
       dsterm == "Transfer to other facility" ~ "On-going care",
-      dsterm == "Death"	 ~ "Died", 
+      dsterm == "Death"	 ~ "Died",
       dsterm == "Palliative discharge" ~ "Died",
       dsterm == "Unknown" ~ NA_character_,
       is.na(dsterm) ~ "On-going care") %>%    # Note this line. need adjusted after some time has passed
       factor(levels = c("Died", "On-going care", "Discharged alive"))
-  ) %>% 
+  ) %>%
   # Bring in variables from other events like this.
-  select(-c(age, sex, any_icu)) %>% 
-  left_join(topline %>% select(subjid, age, sex), by = "subjid") %>% 
+  select(-c(age, sex, any_icu)) %>%
+  left_join(topline %>% select(subjid, age, sex), by = "subjid") %>%
   left_join(treatment %>% select(-age), by = "subjid")
 
 
@@ -124,92 +124,92 @@ topline = topline %>%
 # Survival data object --------------------------------------------------------------------------------
 ## This duplicates what has been done else where but is needed currently for survival analysis 
 ## Needs a good look as assumptions with in it. 
-surv_data = ccp_data %>% 
-  filter(redcap_repeat_instrument != "Infectious Respiratory Disease Pathogen Testing" | 
-           is.na(redcap_repeat_instrument)) %>% 
-  filter(redcap_repeat_instrument != "Pre-admission medication" |
-           is.na(redcap_repeat_instrument)) %>% 
-  mutate(
-    # Make daily form date the master: daily_dsstdat
-    
-    # If daily date missing and discharge date present for that day, use discharge
-    # Above is superceded, just write discharge date to daily date for that day if present
-    daily_dsstdat = case_when(
-      #is.na(daily_dsstdat) &
-      !is.na(dsstdtc) ~ dsstdtc,
-      ## If daily date missing and admission date present for that day, use that 
-      is.na(daily_dsstdat) &
-        !is.na(hostdat) ~ hostdat,
-      TRUE ~ daily_dsstdat),
-    
-    # # If onset of symptoms date missing, presume admission date - WATCH THIS FOR SENSITIVITY ANALYSIS
-    cestdat = case_when(
-      is.na(cestdat) &
-        !is.na(hostdat) ~ hostdat,
-      TRUE ~ cestdat),
-    
-    # Now copy onset date and admission date across forms
-    ## Alternative to a join with topline
-  ) %>% 
-  group_by(subjid) %>% 
-  mutate(
-    hostdat = hostdat[1],
-    cestdat = cestdat[1],
-    sex = sex[1]
-  ) %>%
-  
-  # Now filter last row in each patient which is status date
-  filter(row_number()==n()) %>% 
-  ungroup() %>% 
-  # Now hostdat is copied through, use that if available but no other status date. 
-  mutate(
-    daily_dsstdat = case_when(
-      is.na(daily_dsstdat) &
-        !is.na(hostdat) ~ hostdat,
-      TRUE ~ daily_dsstdat
-    ),
-    
-    # To here then is a single row per patient onset, admission, and status date ->
-    
-    # Now make status using dsterm for CPH models. 
-    status = case_when(
-      dsterm == "Death" ~ 1,
-      dsterm == "Palliative discharge" ~ 1,
-      TRUE ~ 0),
-    
-    # And make status with missing for no one completed for logreg models. 
-    mort = case_when(
-      dsterm == "Death" ~ 1,
-      dsterm == "Palliative discharge" ~ 1,
-      dsterm == "Discharged alive" ~ 0, 
-      dsterm == "Hospitalization" ~ 0,
-      TRUE ~ NA_real_) %>% 
-      factor(), 
-    
-    # Make time
-    time = (daily_dsstdat - cestdat) %>% as.numeric(),
-    
-    # Need to think about informative censoring given patients with good outcomes get censored early
-    # THIS IS IMPORTANT
-    # For now:
-    time = case_when(
-      dsterm == "Discharged alive" | 
-        dsterm == "Hospitalization" |
-        dsterm == "Transfer to other facility" ~ 30,
-      TRUE ~ time)
-  ) %>% 
-  
-  # And then filter patients with no status date as nothing can be said. 
-  filter(!is.na(time)) %>% 
-  # And time = 0
-  filter(time > 0) 
-# # Check
-# select(subjid, cestdat, hostdat, daily_dsstdat, dsstdtc, dsterm, status, time) %>%
-# data.frame()
+# surv_data = ccp_data %>% 
+#   filter(redcap_repeat_instrument != "Infectious Respiratory Disease Pathogen Testing" | 
+#            is.na(redcap_repeat_instrument)) %>% 
+#   filter(redcap_repeat_instrument != "Pre-admission medication" |
+#            is.na(redcap_repeat_instrument)) %>% 
+#   mutate(
+#     # Make daily form date the master: daily_dsstdat
+#     
+#     # If daily date missing and discharge date present for that day, use discharge
+#     # Above is superceded, just write discharge date to daily date for that day if present
+#     daily_dsstdat = case_when(
+#       #is.na(daily_dsstdat) &
+#       !is.na(dsstdtc) ~ dsstdtc,
+#       ## If daily date missing and admission date present for that day, use that 
+#       is.na(daily_dsstdat) &
+#         !is.na(hostdat) ~ hostdat,
+#       TRUE ~ daily_dsstdat),
+#     
+#     # # If onset of symptoms date missing, presume admission date - WATCH THIS FOR SENSITIVITY ANALYSIS
+#     cestdat = case_when(
+#       is.na(cestdat) &
+#         !is.na(hostdat) ~ hostdat,
+#       TRUE ~ cestdat),
+#     
+#     # Now copy onset date and admission date across forms
+#     ## Alternative to a join with topline
+#   ) %>% 
+#   group_by(subjid) %>% 
+#   mutate(
+#     hostdat = hostdat[1],
+#     cestdat = cestdat[1],
+#     sex = sex[1]
+#   ) %>%
+#   
+#   # Now filter last row in each patient which is status date
+#   filter(row_number()==n()) %>% 
+#   ungroup() %>% 
+#   # Now hostdat is copied through, use that if available but no other status date. 
+#   mutate(
+#     daily_dsstdat = case_when(
+#       is.na(daily_dsstdat) &
+#         !is.na(hostdat) ~ hostdat,
+#       TRUE ~ daily_dsstdat
+#     ),
+#     
+#     # To here then is a single row per patient onset, admission, and status date ->
+#     
+#     # Now make status using dsterm for CPH models. 
+#     status = case_when(
+#       dsterm == "Death" ~ 1,
+#       dsterm == "Palliative discharge" ~ 1,
+#       TRUE ~ 0),
+#     
+#     # And make status with missing for no one completed for logreg models. 
+#     mort = case_when(
+#       dsterm == "Death" ~ 1,
+#       dsterm == "Palliative discharge" ~ 1,
+#       dsterm == "Discharged alive" ~ 0, 
+#       dsterm == "Hospitalization" ~ 0,
+#       TRUE ~ NA_real_) %>% 
+#       factor(), 
+#     
+#     # Make time
+#     time = (daily_dsstdat - cestdat) %>% as.numeric(),
+#     
+#     # Need to think about informative censoring given patients with good outcomes get censored early
+#     # THIS IS IMPORTANT
+#     # For now:
+#     time = case_when(
+#       dsterm == "Discharged alive" | 
+#         dsterm == "Hospitalization" |
+#         dsterm == "Transfer to other facility" ~ 30,
+#       TRUE ~ time)
+#   ) %>% 
+#   
+#   # And then filter patients with no status date as nothing can be said. 
+#   filter(!is.na(time)) %>% 
+#   # And time = 0
+#   filter(time > 0) 
+# # # Check
+# # select(subjid, cestdat, hostdat, daily_dsstdat, dsstdtc, dsterm, status, time) %>%
+# # data.frame()
 
 # Take time to event data above and join to day 1 data to predict outcome from day 1 findings. 
-## Note this does not include variable from other days.
-surv_data = surv_data %>% 
-  select(subjid, status, time, mort) %>% 
-  left_join(topline, by = "subjid") %>% 
-  ff_relabel(vlabels)
+# ## Note this does not include variable from other days.
+# surv_data = surv_data %>% 
+#   select(subjid, status, time, mort) %>% 
+#   left_join(topline, by = "subjid") %>% 
+#   ff_relabel(vlabels)

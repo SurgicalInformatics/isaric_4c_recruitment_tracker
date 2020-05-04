@@ -98,22 +98,22 @@ unmatched_hb_ccg_in_master = read_csv('imd_lookups/unmatched_ccg_hb.csv') %>%
          miss_average_imd_rank = ifelse(!is.na(wales_average_imd_rank), wales_average_imd_rank, miss_average_imd_rank)) %>% 
   select(code, miss_average_imd_rank)
 
-#Load master from mapping file
-master = sp::merge(master, england_ccg_imd, by.x = 'code', by.y = 'ccg19cd')
-master = sp::merge(master, scotland_hb_imd, by.x = 'code', by.y = 'HB')
-master = sp::merge(master, ni_imd, by.x = 'code', by.y = 'HSCT')
-master = sp::merge(master, wales_imd, by.x = 'code', by.y = 'hlthau')
-master = sp::merge(master, unmatched_hb_ccg_in_master, by.x = 'code', by.y = 'code')
-
-#now merge IMDs to 1 col
-master$average_imd_rank = ifelse(master$country == 'Scotland', master$scotland_average_imd_rank, master$average_imd_rank)
-master$average_imd_rank = ifelse(master$country == 'Northern Ireland', master$ni_average_imd_rank, master$average_imd_rank)
-master$average_imd_rank = ifelse(master$country == 'Wales', master$wales_average_imd_rank, master$average_imd_rank)
-master$average_imd_rank = ifelse(!is.na(master$miss_average_imd_rank), master$miss_average_imd_rank, master$average_imd_rank)
-
-# master$scotland_average_imd_rank = NULL
-# master$ni_average_imd_rank = NULL
-# master$wa_average_imd_rank = NULL
+# #Load master from mapping file
+# master = sp::merge(master, england_ccg_imd, by.x = 'code', by.y = 'ccg19cd')
+# master = sp::merge(master, scotland_hb_imd, by.x = 'code', by.y = 'HB')
+# master = sp::merge(master, ni_imd, by.x = 'code', by.y = 'HSCT')
+# master = sp::merge(master, wales_imd, by.x = 'code', by.y = 'hlthau')
+# master = sp::merge(master, unmatched_hb_ccg_in_master, by.x = 'code', by.y = 'code')
+# 
+# #now merge IMDs to 1 col
+# master$average_imd_rank = ifelse(master$country == 'Scotland', master$scotland_average_imd_rank, master$average_imd_rank)
+# master$average_imd_rank = ifelse(master$country == 'Northern Ireland', master$ni_average_imd_rank, master$average_imd_rank)
+# master$average_imd_rank = ifelse(master$country == 'Wales', master$wales_average_imd_rank, master$average_imd_rank)
+# master$average_imd_rank = ifelse(!is.na(master$miss_average_imd_rank), master$miss_average_imd_rank, master$average_imd_rank)
+# 
+# # master$scotland_average_imd_rank = NULL
+# # master$ni_average_imd_rank = NULL
+# # master$wa_average_imd_rank = NULL
 
 rm(unmatched_hb_ccg_in_master, england_imd_19, wales_imd_19, scotland_imd_20, ni_imd_17,
    scotland_datazones, england_lsoas, ni_soa_to_hsct, ni_sa_to_lgd, wales_hb_names, wales_lsoa_lookup,
