@@ -8,7 +8,7 @@ These are scripts to pull and prepare data from the above REDCap database. This 
 
 ## Memory issues
 
-Rendering reports for all nations requires a lot of memory. Although individually small files, the amount of memory Pandoc (error message 127) requires to render these files seems to be inoordinately large and is well described as a Pandoc issue. Recommendation is to deploy on a large instance of RStudio Connect or Shiny Server, with access to at least 16GB RAM and a further 16GB of swap (vRAM) space.
+Rendering site requires a lot of memory. Recommendation is to deploy on a large instance of RStudio Connect or Shiny Server, with access to at least 16GB RAM and a further 16GB of swap (vRAM) space.
 
 ## Caution
 ### Data security
