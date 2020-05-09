@@ -39,10 +39,6 @@ data = read_csv(data, na = "", guess_max = 20000)
 source("CCPUKSARI_R_2020-03-04_1532.r")
 
 ccp_data = data
-
-ccp_data = ccp_data %>% 
-  ff_relabel_df(data)
-
 rm(data)
 
 #Topline
@@ -52,4 +48,4 @@ source("05_dag_locator.R")
 gc()
 
 #remove
-rm(data_labels, tries)
+rm(tries)

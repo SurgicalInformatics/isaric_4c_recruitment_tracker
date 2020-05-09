@@ -302,7 +302,6 @@ topline = ccp_data %>%
   filter(is.na(redcap_repeat_instrument)) %>%
   ff_relabel(vlabels)
 
-
 # Define subsets --------------------------------------------------------------------------------
 ## These can be used via: filter(subjid %in% keep_14)
 ## Patients admitted >= 14 days ago. 

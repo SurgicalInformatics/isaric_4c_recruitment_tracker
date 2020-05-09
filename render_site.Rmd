@@ -7,7 +7,7 @@ output:
     css: www/styles.css
 ---
 
-```{r render_setup, include = FALSE, echo = FALSE}
+```{r render_setup, include = FALSE, echo = FALSE, message = FALSE}
 library(rmarkdown)
 library(tidyverse)
 library(ggsci)
@@ -15,13 +15,12 @@ library(finalfit)
 library(lubridate)
 library(flexdashboard)
 library(DT)
-gc()#try preserve memory
 
 today_date = lubridate::today()
 
 #generate data
 source("07_source_data.R")
-gc()#try preserve memory
+gc()
 
 topline = topline %>% 
   distinct(subjid, .keep_all = T)
@@ -153,7 +152,7 @@ gauge(round(count(topline %>% filter(demographics_complete == 'Complete') %>%
               distinct(subjid, .keep_all = T))$n / count(topline %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 
 ```
@@ -165,7 +164,7 @@ gauge(round(count(topline %>% filter(onset_and_admission_complete == 'Complete')
               distinct(subjid, .keep_all = T))$n / count(topline %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -176,7 +175,7 @@ gauge(round(count(topline %>% filter(admission_signs_and_symptoms_complete == 'C
               distinct(subjid, .keep_all = T))$n / count(topline %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -187,7 +186,7 @@ gauge(round(count(topline %>% filter(comorbidities_complete == 'Complete') %>%
               distinct(subjid, .keep_all = T))$n / count(topline %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -198,7 +197,7 @@ gauge(round(count(topline_outcomes_28 %>% filter(complications_complete == 'Comp
               distinct(subjid, .keep_all = T))$n / count(topline_28 %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -348,7 +347,7 @@ gauge(round(count(topline%>% filter(country == 'Scotland') %>% filter(demographi
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Scotland') %>%   
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -360,7 +359,7 @@ gauge(round(count(topline %>% filter(country == 'Scotland') %>% filter(onset_and
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Scotland') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -371,7 +370,7 @@ gauge(round(count(topline %>% filter(country == 'Scotland') %>% filter(admission
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Scotland') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -382,7 +381,7 @@ gauge(round(count(topline %>% filter(country == 'Scotland') %>% filter(comorbidi
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Scotland') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -393,7 +392,7 @@ gauge(round(count(topline_outcomes_28 %>% filter(country == 'Scotland') %>% filt
               distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'Scotland') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -404,7 +403,7 @@ gauge(round(count(topline_outcomes_28 %>% filter(country == 'Scotland') %>% filt
               distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'Scotland') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -541,7 +540,7 @@ gauge(round(count(topline%>% filter(country == 'England') %>% filter(demographic
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'England') %>%   
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 
 ```
@@ -554,7 +553,7 @@ gauge(round(count(topline %>% filter(country == 'England') %>% filter(onset_and_
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'England') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -565,7 +564,7 @@ gauge(round(count(topline %>% filter(country == 'England') %>% filter(admission_
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'England') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -576,7 +575,7 @@ gauge(round(count(topline %>% filter(country == 'England') %>% filter(comorbidit
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'England') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -587,7 +586,7 @@ gauge(round(count(topline_outcomes_28 %>% filter(country == 'England') %>% filte
               distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'England') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -598,7 +597,7 @@ gauge(round(count(topline_outcomes_28 %>% filter(country == 'England') %>% filte
               distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'England') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -744,7 +743,7 @@ gauge(round(count(topline%>% filter(country == 'Wales') %>% filter(demographics_
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Wales') %>%   
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 
 ```
@@ -757,7 +756,7 @@ gauge(round(count(topline %>% filter(country == 'Wales') %>% filter(onset_and_ad
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Wales') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -768,7 +767,7 @@ gauge(round(count(topline %>% filter(country == 'Wales') %>% filter(admission_si
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Wales') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -779,7 +778,7 @@ gauge(round(count(topline %>% filter(country == 'Wales') %>% filter(comorbiditie
               distinct(subjid, .keep_all = T))$n / count(topline %>% filter(country == 'Wales') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -790,7 +789,7 @@ gauge(round(count(topline_outcomes_28 %>% filter(country == 'Wales') %>% filter(
               distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'Wales') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 
@@ -801,7 +800,7 @@ gauge(round(count(topline_outcomes_28 %>% filter(country == 'Wales') %>% filter(
               distinct(subjid, .keep_all = T))$n / count(topline_28 %>% filter(country == 'Wales') %>%  
                                                            distinct(subjid, .keep_all = T))$n*100, digits = 1), 
       min = 0, max = 100, symbol = '%', gaugeSectors(
-  success = c(75, 100), warning = c(40, 74.99), danger = c(0, 39)
+  success = c(80, 100), warning = c(65.1, 79.99), danger = c(0, 65)
 ))
 ```
 

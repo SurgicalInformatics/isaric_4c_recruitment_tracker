@@ -8,9 +8,3 @@ lastrun = Sys.time()
 
 source("03_prep.R")
 source("04_prep_working.R")
-
-rm(ccp_data, treatment, outcome)
-
-#clear up memory 
-gc()
-knitr::knit_meta(clean = T, class=NULL)
